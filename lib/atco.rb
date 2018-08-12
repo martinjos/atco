@@ -36,21 +36,22 @@ module Atco
       journeys = {}
       header = nil
       
-      data.each do |line|
-        if line == data.first
+      data.each_with_index do |line,i|
+        if i == 0
           header = parse_header(line)
           next
         end
         @@methods.each do |method,identifier|
           object = self.send("parse_#{method}", line)
-          if object[:record_identity] && object[:record_identity] == identifier
-            current_journey = object if object[:record_identity] && object[:record_identity] == @@methods[:journey_header]
-            if object[:record_identity] && ( object[:record_identity] == @@methods[:location] ||  object[:record_identity] == @@methods[:additional_location_info] )
-              if object[:record_identity] == @@methods[:location]
-                current_location = object 
-              else
-                locations << Location.new(current_location, object)
-              end
+          next if !object[:record_identity]
+          if object[:record_identity] == identifier
+            if object[:record_identity] == @@methods[:journey_header]
+              current_journey = object
+            end
+            if object[:record_identity] == @@methods[:location]
+              current_location = object
+            elsif object[:record_identity] == @@methods[:additional_location_info]
+              locations << Location.new(current_location, object)
             end
 
             if current_journey
