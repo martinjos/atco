@@ -15,19 +15,18 @@ module Atco
     
     @path = nil
     @@methods = {
-      :bank_holiday => 'QH',
-      :operator => 'QP',
-      :additional_location_info => 'QB',
-      :location => 'QL',
-      :destination => 'QT',
-      :intermediate => 'QI',
-      :origin => 'QO',
-      :journey_header => 'QS'
+      'QH' => :bank_holiday,
+      'QP' => :operator,
+      'QB' => :additional_location_info,
+      'QL' => :location,
+      'QT' => :destination,
+      'QI' => :intermediate,
+      'QO' => :origin,
+      'QS' => :journey_header,
     }
     
     def parse(file)
       @path = File.expand_path(file)
-      data = File.readlines(@path)
       
       objects = []
       current_journey = nil
@@ -36,34 +35,30 @@ module Atco
       journeys = {}
       header = nil
       
-      data.each_with_index do |line,i|
+      File.foreach(@path).each_with_index do |line,i|
         if i == 0
           header = parse_header(line)
           next
         end
-        @@methods.each do |method,identifier|
-          object = self.send("parse_#{method}", line)
-          next if !object[:record_identity]
-          if object[:record_identity] == identifier
-            if object[:record_identity] == @@methods[:journey_header]
-              current_journey = object
-            end
-            if object[:record_identity] == @@methods[:location]
-              current_location = object
-            elsif object[:record_identity] == @@methods[:additional_location_info]
-              locations << Location.new(current_location, object)
-            end
+        method = @@methods[line[0,2]]
+        next if method.nil?
+        object = self.send("parse_#{method}", line)
+        if method == :journey_header
+          current_journey = object
+        elsif method == :location
+          current_location = object
+        elsif method == :additional_location_info
+          locations << Location.new(current_location, object)
+        end
 
-            if current_journey
-              if journeys[current_journey[:unique_journey_identifier]]
-                journeys[current_journey[:unique_journey_identifier]].stops << Stop.new(object)
-              else
-                journeys[current_journey[:unique_journey_identifier]] = Journey.new(object)
-              end
-            end
-            objects << object
+        if current_journey
+          if journeys[current_journey[:unique_journey_identifier]]
+            journeys[current_journey[:unique_journey_identifier]].stops << Stop.new(object)
+          else
+            journeys[current_journey[:unique_journey_identifier]] = Journey.new(object)
           end
         end
+        objects << object
       end
       return {:header => header, :locations => locations, :journeys => journeys}
     end
