@@ -9,7 +9,7 @@ describe Atco do
   
   it "should output file for debugging!" do
     result = Atco.parse('spec/fixtures/example.cif')
-    File.open('test.output', 'w+') do |f|
+    File.open('../test.output', 'w+') do |f|
       f.flush
       f.write(JSON.pretty_generate(result))
     end
